@@ -1,8 +1,13 @@
-use salvo::prelude::*;
+use axum::http::StatusCode;
+use axum::response::Html;
+use axum::serve;
+use axum::{routing::get, Router};
 use ssr_rs::Ssr;
 use std::cell::RefCell;
 use std::fs::read_to_string;
 use std::path::Path;
+use tower_http::services::ServeDir;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 thread_local! {
     static SSR: RefCell<Ssr<'static, 'static>> = RefCell::new(
@@ -16,8 +21,7 @@ thread_local! {
     )
 }
 
-#[handler]
-async fn index(res: &mut Response) {
+async fn index() -> Result<Html<String>, StatusCode> {
     let result = SSR.with(|ssr| {
         let mut ssr = ssr.borrow_mut();
         ssr.render_to_string(None).unwrap_or_else(|err| {
@@ -28,9 +32,7 @@ async fn index(res: &mut Response) {
 
     if result.is_empty() {
         eprintln!("Rendered result is empty");
-        res.status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(Text::Plain("Internal Server Error"));
-        return;
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     // NOTE:  For debugging
@@ -40,9 +42,7 @@ async fn index(res: &mut Response) {
         Ok(val) => val,
         Err(err) => {
             eprintln!("Failed to parse JSON: {err}");
-            res.status_code(StatusCode::INTERNAL_SERVER_ERROR);
-            res.render(Text::Plain("Internal Server Error"));
-            return;
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
 
@@ -62,24 +62,36 @@ async fn index(res: &mut Response) {
         </body>
         </html>"#
     );
-    res.render(Text::Html(full_html));
+
+    Ok(Html(full_html))
 }
 
 #[tokio::main]
 async fn main() {
     Ssr::create_platform();
-    let router = Router::new()
-        .push(Router::with_path("/client/<**path>").get(StaticDir::new(["./dist/client"])))
-        .push(
-            Router::with_path("/client/assets/<**path>")
-                .get(StaticDir::new(["./dist/assets/client"])),
+    let app = Router::new()
+        // Must use nest_service over route_service here.
+        // Not entirely sure why as of writing this comment though.
+        .nest_service("/client", ServeDir::new("./dist/client"))
+        .route("/", get(index));
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
+        .await
+        .unwrap();
+
+    // Copied from the axum static file server example.
+    // Not entirely sure what this does as of writing this comment.
+    // Intially thought it would help with debugging why the static files weren't being served,
+    // but that was fixed by changing `route_service` to `nest_service`.
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
+            }),
         )
-        .push(Router::with_path("/").get(index));
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+    tracing::info!("Listening on http://{:?}", listener.local_addr().unwrap());
 
-    let acceptor = TcpListener::new("127.0.0.1:8080").bind().await;
-
-    tracing_subscriber::fmt().init();
-    tracing::info!("Listening on http://{:?}", acceptor.local_addr());
-
-    Server::new(acceptor).serve(router).await;
+    serve(listener, app).await.unwrap();
 }
