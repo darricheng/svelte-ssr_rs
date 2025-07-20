@@ -33,7 +33,8 @@ async fn index(res: &mut Response) {
         return;
     }
 
-    //println!("Rendered result: {}", result); // For debugging
+    // NOTE:  For debugging
+    // println!("Rendered result: {}", result);
 
     let result: serde_json::Value = match serde_json::from_str(&result) {
         Ok(val) => val,
