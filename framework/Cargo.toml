@@ -1,0 +1,18 @@
+[package]
+name = "svelte-ssr_rs-framework"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "svelte-ssr_rs"
+path = "backend/main.rs"
+
+[dependencies]
+ssr_rs = "0.8.1"
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6.6", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde_json = "1.0.118"
