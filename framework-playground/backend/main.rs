@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::Html;
 use axum::serve;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use ssr_rs::Ssr;
 use std::cell::RefCell;
 use std::fs::read_to_string;
@@ -21,10 +21,10 @@ thread_local! {
     )
 }
 
-async fn index() -> Result<Html<String>, StatusCode> {
+fn render(props: Option<&str>) -> Result<Html<String>, StatusCode> {
     let result = SSR.with(|ssr| {
         let mut ssr = ssr.borrow_mut();
-        ssr.render_to_string(None).unwrap_or_else(|err| {
+        ssr.render_to_string(props).unwrap_or_else(|err| {
             eprintln!("Error rendering to string: {err}");
             String::new()
         })
@@ -66,6 +66,30 @@ async fn index() -> Result<Html<String>, StatusCode> {
     Ok(Html(full_html))
 }
 
+// Example of passing data from rust to v8
+async fn rust_data() -> Result<Html<String>, StatusCode> {
+    // Note the braces
+    // This is essentially serialised JSON
+    let props = r##"{
+      "params_1": [
+           "hello",
+           "ciao",
+           "こんにちは"
+       ],
+      "foo": "bar",
+      "someObj": {
+        "prop1": 55,
+        "prop2": true
+      }
+    }"##;
+
+    render(Some(props))
+}
+
+async fn index() -> Result<Html<String>, StatusCode> {
+    render(None)
+}
+
 #[tokio::main]
 async fn main() {
     Ssr::create_platform();
@@ -73,7 +97,8 @@ async fn main() {
         // Must use nest_service over route_service here.
         // Not entirely sure why as of writing this comment though.
         .nest_service("/client", ServeDir::new("./dist/client"))
-        .route("/", get(index));
+        .route("/", get(index))
+        .route("/ssr", get(rust_data));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await

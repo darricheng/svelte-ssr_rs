@@ -1,10 +1,14 @@
 <script>
-  let count = 0
+  let props = $props();
+
+  let { initialVal = 0 } = props;
+
+  let count = $state(initialVal);
   const increment = () => {
     count += 1
   }
 </script>
 
-<button on:click={increment}>
+<button onclick={increment}>
   count is {count}
 </button>

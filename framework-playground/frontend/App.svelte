@@ -2,6 +2,12 @@
   import svelteLogo from './assets/svelte.svg'
   import viteLogo from '/vite.svg'
   import Counter from './lib/Counter.svelte'
+
+  // NOTE: For capturing props passed during server rendering.
+  // See the network request response.
+  // This causes FE to have errors though, because there's no
+  // such props being passed when this code is run in the client.
+  let { some } = $props();
 </script>
 
 <svelte:head><title>Vite + Svelte + Rust SSR</title></svelte:head>
@@ -18,6 +24,7 @@
 
   <div class="card">
     <Counter />
+    <Counter initialVal={5} />
   </div>
 
   <p>
@@ -27,6 +34,18 @@
   <p class="read-the-docs">
     Click on the Vite and Svelte logos to learn more
   </p>
+
+  <!-- NOTE: these are to show ssr works -->
+  {#each some.params_1 as lang}
+    <p>{lang}</p>
+  {/each}
+
+  <p>{some.foo}</p>
+
+  <ul>
+    <li>{some.someObj.prop1}</li>
+    <li>{some.someObj.prop2}</li>
+  </ul>
 </main>
 
 <style>
