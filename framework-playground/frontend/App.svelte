@@ -7,7 +7,7 @@
   // See the network request response.
   // This causes FE to have errors though, because there's no
   // such props being passed when this code is run in the client.
-  let { some } = $props();
+  // let { some } = $props();
 </script>
 
 <svelte:head><title>Vite + Svelte + Rust SSR</title></svelte:head>
@@ -36,16 +36,16 @@
   </p>
 
   <!-- NOTE: these are to show ssr works -->
-  {#each some.params_1 as lang}
-    <p>{lang}</p>
-  {/each}
-
-  <p>{some.foo}</p>
-
-  <ul>
-    <li>{some.someObj.prop1}</li>
-    <li>{some.someObj.prop2}</li>
-  </ul>
+  <!-- {#each some.params_1 as lang} -->
+  <!--   <p>{lang}</p> -->
+  <!-- {/each} -->
+  <!---->
+  <!-- <p>{some.foo}</p> -->
+  <!---->
+  <!-- <ul> -->
+  <!--   <li>{some.someObj.prop1}</li> -->
+  <!--   <li>{some.someObj.prop2}</li> -->
+  <!-- </ul> -->
 </main>
 
 <style>
