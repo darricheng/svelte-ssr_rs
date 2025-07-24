@@ -1,0 +1,8 @@
+default:
+    @just --list
+
+rebuild-client-js:
+    pnpm exec vite build --config vite.client.config.js --mode development --sourcemap true
+
+rebuild-ssr-js:
+    pnpm exec vite build --config vite.ssr.config.js --mode development --sourcemap true
